@@ -136,6 +136,13 @@ struct LauncherScreen: PaletteScreen {
         rows.indices.contains(selection) ? rows[selection] : nil
     }
 
+    var instantAliasSelection: Int? {
+        rows.firstIndex { row in
+            guard case .entry(let app) = row else { return false }
+            return core.aliases.isInstantMatch(vm.query, for: app.preferenceKey)
+        }
+    }
+
     /// What the controls are is the owning feature's business; this only forwards.
     func headerAccessory(
         at selection: Int, focus: FocusState<String?>.Binding
@@ -242,6 +249,12 @@ struct LauncherScreen: PaletteScreen {
     }
 
     func activate(at selection: Int) {
+        activate(at: selection, searchQuery: vm.query)
+    }
+
+    /// Lets an instant alias consume the visible query before launch without losing the query
+    /// ordinary launcher actions and fallbacks receive.
+    func activate(at selection: Int, searchQuery: String) {
         switch row(at: selection) {
         // Error cards no-op — copyCalculatorResult only acts on value payloads.
         case .calc(let result): core.calculatorCoordinator.copyCalculatorResult(result)
@@ -250,9 +263,9 @@ struct LauncherScreen: PaletteScreen {
         case .meeting(let meeting): core.calendarCoordinator.activateMeeting(id: meeting.id)
         case .entry(let app):
             core.launcherCoordinator.launch(
-                app, searchQuery: vm.query, arguments: argumentValues(for: app))
+                app, searchQuery: searchQuery, arguments: argumentValues(for: app))
         case .fallback(let fallback, _):
-            core.fallbackCoordinator.run(fallback, query: vm.query)
+            core.fallbackCoordinator.run(fallback, query: searchQuery)
         case nil: break
         }
     }

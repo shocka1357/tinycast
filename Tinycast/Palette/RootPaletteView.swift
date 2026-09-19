@@ -42,6 +42,8 @@ struct RootPaletteView: View {
     @State private var hostWindow: NSWindow?
     /// The pending scroll request; modes are exclusive, so one piece of state serves all.
     @State private var scroll = ScrollIntent(kind: .top)
+    /// Holds an instant alias through a pushed screen, so returning cannot launch it again.
+    @State private var activatedInstantAlias: String?
 
     /// Compact vs. full; the source of truth is on `AppCore`, so the two can't disagree.
     private var isCollapsed: Bool { core.paletteCoordinator.paletteIsCollapsed }
@@ -50,12 +52,7 @@ struct RootPaletteView: View {
     private var screen: any PaletteScreen {
         switch vm.mode {
         case .launcher:
-            return LauncherScreen(
-                appIndex: appIndex, favorites: favorites, visibility: visibility,
-                currencyRates: currencyRates, core: core, vm: vm, running: selectionIsRunning,
-                meeting: core.calendarCoordinator.cardedMeeting, now: meetingClock.now,
-                openActions: openActions, openArgumentOptions: openArgumentOptions,
-                scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
+            return launcherScreen
         case .uninstall:
             return UninstallScreen(
                 session: uninstall, core: core, vm: vm, openActions: openActions)
@@ -105,6 +102,15 @@ struct RootPaletteView: View {
             return ExtensionCommandScreen(
                 screen: extensionScreen, extensions: extensions, vm: vm, openActions: openActions)
         }
+    }
+
+    private var launcherScreen: LauncherScreen {
+        LauncherScreen(
+            appIndex: appIndex, favorites: favorites, visibility: visibility,
+            currencyRates: currencyRates, core: core, vm: vm, running: selectionIsRunning,
+            meeting: core.calendarCoordinator.cardedMeeting, now: meetingClock.now,
+            openActions: openActions, openArgumentOptions: openArgumentOptions,
+            scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
     }
 
     /// The running command's rendered screen, flattened. `.empty` until the first commit lands.
@@ -358,12 +364,23 @@ struct RootPaletteView: View {
             }
             // A preserved screen re-summons as it was left, so a menu must end with the palette.
             .onChange(of: vm.isVisible) {
-                if !vm.isVisible, menuOpen { closeMenus() }
+                if !vm.isVisible {
+                    activatedInstantAlias = nil
+                    if menuOpen { closeMenus() }
+                }
             }
             .onChange(of: vm.query) {
                 if vm.collapseQueryLineBreaks() { return }
                 vm.selection = 0
                 scroll = ScrollIntent(kind: .top)
+                // `screen` still reflects the render that observed the old query here. Let SwiftUI
+                // publish the new launcher rows before resolving an exact instant-alias match.
+                let changedQuery = vm.query
+                Task { @MainActor in
+                    await Task.yield()
+                    guard vm.query == changedQuery else { return }
+                    activateInstantAlias()
+                }
                 if vm.mode == .fileSearch { fileSearch.search(vm.query, filter: vm.fileSearchFilter) }
                 if vm.mode == .dictionary { dictionary.lookUp(vm.query) }
                 if vm.mode == .menuSearch { menuSearch.filter(vm.query) }
@@ -449,6 +466,34 @@ struct RootPaletteView: View {
             .onChange(of: core.paletteCoordinator.paletteIsCollapsed) {
                 core.paletteCoordinator.syncPaletteSize()
             }
+    }
+
+    private func activateInstantAlias() {
+        guard vm.mode == .launcher, !isCollapsed, !vm.isComposing, vm.argumentEntryID == nil
+        else { return }
+        let query = FuzzyMatch.normalized(vm.query)
+        guard !query.isEmpty else {
+            activatedInstantAlias = nil
+            return
+        }
+        if activatedInstantAlias != query { activatedInstantAlias = nil }
+        let launcher = launcherScreen
+        guard activatedInstantAlias == nil, let selection = launcher.instantAliasSelection
+        else { return }
+        activatedInstantAlias = query
+        vm.selection = selection
+        // Match ordinary Return handling: a required field takes focus instead of launching.
+        if let incomplete = launcher.headerAccessory(at: selection, focus: $argumentFocused)?
+            .firstIncompleteField
+        {
+            argumentFocused = incomplete
+            searchFocused = false
+            return
+        }
+        // Consume the alias while the palette is still visible. Clearing it after launch can
+        // publish a fresh launcher render after the window hides and leave that empty window up.
+        vm.query = ""
+        launcher.activate(at: selection, searchQuery: query)
     }
 
     /// Split from `body`: one chain of this length is past what the type-checker will infer.

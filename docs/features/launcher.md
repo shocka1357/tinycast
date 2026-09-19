@@ -335,7 +335,9 @@ result will answer to is visible without opening anything.
 Editing lives in Settings only — an alias is one-time configuration like a shortcut, not a
 per-invocation action, so the ⌘K menu stays out of it. Visibility is the one exception, and only in
 one direction: an unwanted result is noticed while searching, so ⌘K can hide a row, but putting it
-back is still the pane's checkbox. Every pane built
+back is still the pane's checkbox. Settings ▸ Aliases is the unified manager: it lists configured
+aliases across every entry kind, searches names and aliases, removes them with the field's clear
+button, and adds one through a searchable two-step picker. Every pane built
 on `LauncherItemsSection` puts an `AliasField` on each row, dressed like the `ShortcutRecorder`
 beside it; edits store as typed and trim when the field loses focus, and a blank means none. That
 list filters by **membership only**, keeping the index's name order — re-ranking it per keystroke
@@ -345,9 +347,16 @@ Commands passes `CustomCommand.entryID`, Settings ▸ Extensions passes `extensi
 and each dims the field when the entry is hidden from launcher search, whose entry the ranker never
 sees.
 
-Aliases ride along in a settings backup (`launcherAliases`), and deleting what an alias points at —
-uninstalling an app, deleting a quicklink or custom command, uninstalling an extension — removes it
-with the entry's other per-entry preferences.
+The bolt in an alias field marks that alias as instant. When the root query exactly matches it,
+`RootPaletteView` selects the matching visible entry and uses the ordinary activation path without
+waiting for Return. Prefixes and aliases without the bolt keep their normal ranking behavior. The
+query is consumed once until it changes, so returning from a pushed extension screen cannot launch
+the same command again; a command with required arguments still focuses its first empty field.
+
+Aliases and their instant flags ride along in a settings backup (`launcherAliases` and
+`instantLauncherAliases`), and deleting what an alias points at — uninstalling an app, deleting a
+quicklink or custom command, uninstalling an extension — removes both with the entry's other per-entry
+preferences.
 
 ### Alternate names
 

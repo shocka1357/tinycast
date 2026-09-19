@@ -484,6 +484,7 @@ Settings › Extensions › the command › Alias is the writer; `AppIndex` alre
 `.userAlias`. The field sits beside the shortcut recorder on the command's title row, the same
 pairing Settings ▸ Commands uses. It dims when the command is hidden from launcher search — the
 global Show in launcher switch, or this extension's — because the ranker never sees the entry then.
+The field's bolt makes the alias instant through the launcher's ordinary activation path.
 
 ## Deeplinks
 
@@ -726,7 +727,7 @@ never shares with an installed copy.
 | Icon override | `UserDefaults` → `extensionAppearances` | yes |
 | Command shortcuts | `UserDefaults` → `hotkey.extensionCommand.<entry id>` | yes |
 | Favorites, hidden items | `UserDefaults` → `favoriteApps`, `hiddenItemKeys` | yes |
-| User alias | `UserDefaults` → `launcherAliases` | yes |
+| User alias and instant flag | `UserDefaults` → `launcherAliases`, `instantLauncherAliases` | yes |
 | Launch ranking | `launcher-ranking.json` | yes |
 
 `ExtensionCatalog.safeName` maps an npm-style name onto one path segment, and is the **only** copy of

@@ -108,7 +108,7 @@ enum SettingsSearchCatalog {
     // Pane order, then section order within a pane, so this reads as a table of contents.
 
     static let entries: [SettingsSearchEntry] =
-        general + applications + systemSettings
+        general + applications + aliases + systemSettings
         + systemActions + commands + quicklinks + appleShortcuts + fallbacks + ai + quickActions + fileSearch
         + notes
         + snippets + navigation + windowManagement + clipboard + emoji + calendar
@@ -183,6 +183,15 @@ enum SettingsSearchCatalog {
         .init(
             group: .applicationsApplications, "Aliases and shortcuts",
             keywords: ["alias", "hotkey", "per app", "hide"])
+    ]
+
+    private static let aliases: [SettingsSearchEntry] = [
+        .init(
+            pane: .aliases,
+            keywords: ["alias", "shortcut", "instant", "launcher", "keyword"]),
+        .init(
+            group: .aliasesAliases, "Manage aliases",
+            keywords: ["add", "edit", "remove", "delete", "instant", "bolt"])
     ]
 
     private static let systemSettings: [SettingsSearchEntry] = [

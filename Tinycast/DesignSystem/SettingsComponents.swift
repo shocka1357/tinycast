@@ -237,6 +237,20 @@ struct AliasField: View {
                 .onChange(of: focused) { _, now in
                     if !now { commit() }
                 }
+            Button {
+                commit()
+                aliases.setInstant(!aliases.isInstant(for: key), for: key)
+            } label: {
+                Image(systemName: aliases.isInstant(for: key) ? "bolt.fill" : "bolt")
+                    .font(.system(size: 10))
+                    .foregroundStyle(
+                        aliases.isInstant(for: key) ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .help("Launch instantly when this alias is typed")
+            .accessibilityLabel("Launch \(name) instantly from its alias")
+            .accessibilityValue(aliases.isInstant(for: key) ? "On" : "Off")
             if !draft.isEmpty {
                 Button(action: clear) {
                     Image(systemName: "xmark.circle.fill")

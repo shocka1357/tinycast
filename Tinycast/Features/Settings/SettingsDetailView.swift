@@ -10,6 +10,7 @@ struct SettingsDetailView: View {
             switch navigation.tab {
             case .general: GeneralSettingsView()
             case .applications: ApplicationsSettingsView()
+            case .aliases: AliasesSettingsView()
             case .systemSettings: SystemSettingsSettingsView()
             case .systemActions: SystemActionsSettingsView()
             case .commands: CommandsSettingsView()
